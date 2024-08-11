@@ -10,5 +10,8 @@ Pequeno guia para iniciar o projeto
 para criar as tabelas do banco:
 >> python manage.py migrate
 
-3) Por fim, para testar a aplicação:
+3) Para acessar o Django Admin, basta criar um super usuário com o comando:
+>>python manage.py createsuperuser
+
+4) Por fim, para testar a aplicação:
 >> python manage.py runserver
