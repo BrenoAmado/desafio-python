@@ -17,7 +17,7 @@ def upload_planilha(request):
         workbook = load_workbook(arquivo)
         sheet = workbook.active
 
-        #Processo de leitura do excel
+        # Processo de leitura do excel
         pessoas_ativas = []
         for row in sheet.iter_rows(min_row=2, values_only=True):
             nome, email, data_nascimento, ativo = row
@@ -30,7 +30,7 @@ def upload_planilha(request):
 
             idade = (datetime.now().date() - data_nascimento).days // 365
 
-            #Validação de idade e idade perante valor
+            # Validação de idade e idade perante valor
             if idade < 18:
                 ativo = False
 
