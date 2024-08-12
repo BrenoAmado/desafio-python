@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.shortcuts import redirect
 from django.http import JsonResponse
 from openpyxl import load_workbook
 from .models import Pessoa
@@ -17,8 +18,10 @@ def upload_planilha(request):
         workbook = load_workbook(arquivo)
         sheet = workbook.active
 
+        # Lista para armazenar nomes e emails das pessoas presentes no excel
+        pessoas_no_excel = []
+
         # Processo de leitura do excel
-        pessoas_ativas = []
         for row in sheet.iter_rows(min_row=2, values_only=True):
             nome, email, data_nascimento, ativo = row
 
@@ -42,23 +45,48 @@ def upload_planilha(request):
                 else:
                     valor = 200.00
 
-                pessoa = Pessoa.objects.create(
+                # Verifica se a pessoa já existe com todos os dados iguais
+                pessoa_existente = Pessoa.objects.filter(
                     nome=nome,
                     email=email,
                     data_nascimento=data_nascimento,
                     ativo=True,
                     valor=valor
-                )
+                ).exists()
+                
+                # Se não existir, cria a nova pessoa
+                if not pessoa_existente:
+                    Pessoa.objects.create(
+                        nome=nome,
+                        email=email,
+                        data_nascimento=data_nascimento,
+                        ativo=True,
+                        valor=valor
+                    )
 
-                pessoas_ativas.append({
-                    "nome": nome,
-                    "email": email,
-                    "data_nascimento": data_nascimento,
-                    "ativo": ativo,
-                    "valor": valor
-                })
+                # Adiciona a lista de pessoas atualizada no excel
+                pessoas_no_excel.append((nome, email))
 
-        return JsonResponse(pessoas_ativas, safe=False)
+            # Exclui pessoas que estão no banco, mas não no Excel
+            Pessoa.objects.filter(ativo=True).exclude(
+                nome__in=[p[0] for p in pessoas_no_excel],
+                email__in=[p[1] for p in pessoas_no_excel]).delete()
+
+            # Recupera todas as pessoas ativas após o processamento
+            pessoas_ativas = Pessoa.objects.filter(ativo=True).values(
+                'nome', 'email', 'data_nascimento', 'ativo', 'valor')
+
+        # Converte as datas e valores para o formato necessário do JSON
+        for pessoa in pessoas_ativas:
+            pessoa['data_nascimento'] = pessoa['data_nascimento'].strftime('%Y-%m-%d')
+            pessoa['valor'] = float(pessoa['valor'])
+
+        request.session['pessoas_ativas'] = list(pessoas_ativas)
+        return redirect('exibir_json')
+
+def exibir_json(request):
+    pessoas_ativas = request.session.get('pessoas_ativas', [])
+    return JsonResponse(pessoas_ativas, safe=False)
 
 
 def download_planilha(request):
@@ -83,6 +111,6 @@ def download_planilha(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=pessoas_ativas.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=Tabela_Atualizada.xlsx'
     workbook.save(response)
     return response

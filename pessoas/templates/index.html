@@ -6,13 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload de Planilha</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="{% static 'js/upload_new_tab.js' %}"></script>
+    <script src="{% static 'js/alerta_download.js' %}"></script>
 </head>
 <body>
     <div class="container">
         <h1>Upload e Download de Planilhas Excel</h1>
 
         <!-- Formulário para upload da planilha -->
-        <form action="{% url 'upload_planilha' %}" method="post" enctype="multipart/form-data">
+        <form action="{% url 'upload_planilha' %}" method="post" enctype="multipart/form-data"
+              onsubmit="uploadAndOpenInNewTab(event)" data-redirect-url="{% url 'exibir_json' %}">
             {% csrf_token %}
             <label for="file">Selecione o arquivo Excel:</label>
             <input type="file" id="file" name="file" required>
@@ -22,7 +25,7 @@
         <br><br>
 
         <!-- Download da planilha -->
-        <a href="{% url 'download_planilha' %}">Baixar planilha processada</a>
+        <a href="{% url 'download_planilha' %}" onclick="downloadAlert()">Baixar planilha processada</a>
 
         <br><br>
 
@@ -31,3 +34,4 @@
     </div>
 </body>
 </html>
+
